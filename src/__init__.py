@@ -1,16 +1,10 @@
 from flask import Flask, request, Blueprint
-from .controllers.userController import controller
 from .config.connectDB import db
-# from .borrow.controller import borrow
-# from .extension import db, ma
-# from .model import Students, Books, Author, Category, Borrows
 from .models.model import User
 import os
 from .config.config import config
-# from flask_sqlalchemy import SQLAlchemy
-# from flask_marshmallow import Marshmallow
-# db = SQLAlchemy()
-# ma = Marshmallow()
+from .route.web import initRouteWeb
+from flask_cors import CORS
 
 
 def create_db(app):
@@ -24,13 +18,8 @@ def create_db(app):
 def create_app():
     app = Flask(__name__)
     app.config.from_mapping(config)
-    # db = SQLAlchemy()
-    # db.init_app(app)
-    # ma.init_app(app)
-    # app.config.from_pyfile(config_file)
+    CORS(app)
+    # CORS(app, resources={r"/api/*": {"origins": "*"}})
     create_db(app)
-    app.register_blueprint(controller)
-    # app.register_blueprint(borrow)
-    # print(app.config["SECRET_KEY"])
-    # print(app.config["SQLALCHEMY_DATABASE_URI"])
+    app.register_blueprint(initRouteWeb)
     return app

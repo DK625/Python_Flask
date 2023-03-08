@@ -1,43 +1,132 @@
-from flask import Blueprint
-# from .services import (add_controller_service, get_controller_by_id_service,
-#                        get_all_controller_service, update_controller_by_id_service,
-#                        delete_controller_by_id_service, get_controller_by_author_service)
-controller = Blueprint("controller", __name__)
+import json
+from flask import Flask, request, jsonify
+# from flask_jwt_extended import create_access_token
+# from flask_jwt_extended import get_jwt_identity
+# from flask_jwt_extended import jwt_required
+# from flask_jwt_extended import JWTManager
+
+from ..models.model import User
+from ..config.connectDB import db
 
 
-@controller.route("/")
-def add_controller():
-    return "ALL USER"
+from ..services import userService
+from flask import current_app
 
 
-# @controller.route("/management/<int:id>", methods=['GET'])
-# def get_controller_by_id(id):
-#     return get_controller_by_id_service(id)
+# imports for PyJWT authentication
+import jwt
+from datetime import datetime, timedelta
 
-# # get all controller
-
-
-# @controller.route("/controller-management/controller", methods=['GET'])
-# def get_all_controller():
-#     return get_all_controller_service()
-
-# # update controller
+from ..config.marshMallow import UserSchema
+# user_schema = UserSchema()
+users_schema = UserSchema(many=True)
 
 
-# @controller.route("/controller-management/controller/<int:id>", methods=['PUT'])
-# def update_controller_by_id(id):
-#     return update_controller_by_id_service(id)
+def handleLoging():
+    data = json.loads(request.data)
+    if (data and ('email' in data) and ('password' in data)):
+        email = data['email']
+        password = data['password']
+        userData = userService.handleUserLogin(email, password)
+        if (userData['errCode'] == 0):
+            # current_app.config['SECRET_KEY'] = "super-secret"
+            token = jwt.encode({
+                'roleId': userData['roleId'],
+                'id': userData['id'],
+                'exp': datetime.utcnow() + timedelta(minutes=30000)
+            }, current_app.config['SECRET_KEY'])
+            return jsonify({
+                "token": token,
+                "errCode": userData['errCode'],
+                "errMessage": userData['errMessage'],
+                # "user": userData if userData else {}
+            }), 202
+        return jsonify({
+            "errCode": userData['errCode'],
+            "message": userData['errMessage'],
+            "user": userData if userData else {}
+        }), 202
+    return jsonify({
+        "errCode": "1",
+        "message": "Missing inputs parameter!"
+    }), 404
 
-# # delete controller
+
+def handleCreateNewUsers():
+    data = json.loads(request.data)
+    try:
+        token = request.headers['Authorization'].split()[1]
+        currentUser = jwt.decode(
+            token, current_app.config['SECRET_KEY'], algorithms=["HS256"])
+        userData = userService.createNewUser(data, currentUser['roleId'])
+        return jsonify(
+            userData,
+        ), 200
+    except:
+        return jsonify({
+            "errMessage": "not logged in yet",
+            # "token": currentUser
+        })
 
 
-# @controller.route("/controller-management/controller/<int:id>", methods=['DELETE'])
-# def delete_controller_by_id(id):
-#     return delete_controller_by_id_service(id)
+def handleGetAllUsers():
+    try:
+        token = request.headers['Authorization'].split()[1]
+        data = jwt.decode(
+            token, current_app.config['SECRET_KEY'], algorithms=["HS256"])
+        if (data and ('id' in data) and ('roleId' in data)):
+            userData = userService.getAllUsers(data)
+            return (
+                userData
+            )
+        return jsonify({
+            # "dataUser": data,
+            "errCode": "1",
+            "errMessage": "Missing inputs parameter!"
+        })
+    except:
+        return jsonify({
+            "errMessage": "not logged in yet"
+        })
 
-# # get controller by author
+
+def handleEditUsers():
+    try:
+        token = request.headers['Authorization'].split()[1]
+        currentUser = jwt.decode(
+            token, current_app.config['SECRET_KEY'], algorithms=["HS256"])
+        data = json.loads(request.data)
+        if (data and ('firstName' in data) and ('lastName' in data) and ('address' in data)) and ('id' in data):
+            message = userService.updateUserData(data, currentUser)
+            return jsonify(
+                message
+            ), 202
+        return jsonify({
+            "errCode": "1",
+            "errMessage": "Missing inputs parameter!"
+        })
+    except:
+        return jsonify({
+            "errMessage": "not logged in yet"
+        })
 
 
-# @controller.route("/controller-management/controller/<string:author>", methods=['GET'])
-# def get_controller_by_author(author):
-#     return get_controller_by_author_service(author)
+def handleDeleteUsers():
+    try:
+        token = request.headers['Authorization'].split()[1]
+        currentUser = jwt.decode(
+            token, current_app.config['SECRET_KEY'], algorithms=["HS256"])
+        data = json.loads(request.data)
+        if (data and ('roleId' in currentUser)):
+            message = userService.deleteUser(data['id'], currentUser)
+            return jsonify(
+                message
+            ), 202
+        return jsonify({
+            "errCode": "1",
+            "errMessage": "Missing inputs parameter!"
+        })
+    except:
+        return jsonify({
+            "errMessage": "not logged in yet"
+        })
