@@ -18,8 +18,8 @@ def create_db(app):
 def create_app():
     app = Flask(__name__)
     app.config.from_mapping(config)
-    CORS(app)
-    # CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+    CORS(app, supports_credentials=True)
     create_db(app)
     app.register_blueprint(initRouteWeb)
     return app

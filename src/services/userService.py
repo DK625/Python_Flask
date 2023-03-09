@@ -1,7 +1,7 @@
 from ..config.connectDB import db
 from ..config.marshMallow import UserSchema
-from sqlalchemy.sql import func
 from ..models.model import User
+from flask import jsonify
 from werkzeug.security import check_password_hash, generate_password_hash
 users_schema = UserSchema(many=True)
 
@@ -79,9 +79,9 @@ def createNewUser(data, role):
 def getAllUsers(data):
     if (data['roleId'] == "admin"):
         users = User.query.all()
-        return users_schema.jsonify(users), 202
+        return users_schema.dump(users)
     user = User.query.filter_by(id=data['id']).all()
-    return users_schema.jsonify(user), 202
+    return users_schema.dump(user)
 
 
 def updateUserData(data, currentUser):

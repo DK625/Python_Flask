@@ -1,9 +1,5 @@
 import json
 from flask import Flask, request, jsonify
-# from flask_jwt_extended import create_access_token
-# from flask_jwt_extended import get_jwt_identity
-# from flask_jwt_extended import jwt_required
-# from flask_jwt_extended import JWTManager
 
 from ..models.model import User
 from ..config.connectDB import db
@@ -13,7 +9,6 @@ from ..services import userService
 from flask import current_app
 
 
-# imports for PyJWT authentication
 import jwt
 from datetime import datetime, timedelta
 
@@ -29,7 +24,6 @@ def handleLoging():
         password = data['password']
         userData = userService.handleUserLogin(email, password)
         if (userData['errCode'] == 0):
-            # current_app.config['SECRET_KEY'] = "super-secret"
             token = jwt.encode({
                 'roleId': userData['roleId'],
                 'id': userData['id'],
@@ -39,7 +33,6 @@ def handleLoging():
                 "token": token,
                 "errCode": userData['errCode'],
                 "errMessage": userData['errMessage'],
-                # "user": userData if userData else {}
             }), 202
         return jsonify({
             "errCode": userData['errCode'],
@@ -59,13 +52,12 @@ def handleCreateNewUsers():
         currentUser = jwt.decode(
             token, current_app.config['SECRET_KEY'], algorithms=["HS256"])
         userData = userService.createNewUser(data, currentUser['roleId'])
-        return jsonify(
-            userData,
-        ), 200
+        return jsonify({
+            "message": userData,
+        }), 200
     except:
         return jsonify({
             "errMessage": "not logged in yet",
-            # "token": currentUser
         })
 
 
@@ -76,11 +68,12 @@ def handleGetAllUsers():
             token, current_app.config['SECRET_KEY'], algorithms=["HS256"])
         if (data and ('id' in data) and ('roleId' in data)):
             userData = userService.getAllUsers(data)
-            return (
-                userData
-            )
+            return jsonify({
+                "errCode": 0,
+                "errMessage": "OK",
+                "users": userData
+            })
         return jsonify({
-            # "dataUser": data,
             "errCode": "1",
             "errMessage": "Missing inputs parameter!"
         })
@@ -98,9 +91,9 @@ def handleEditUsers():
         data = json.loads(request.data)
         if (data and ('firstName' in data) and ('lastName' in data) and ('address' in data)) and ('id' in data):
             message = userService.updateUserData(data, currentUser)
-            return jsonify(
-                message
-            ), 202
+            return jsonify({
+                "message": message
+            }), 202
         return jsonify({
             "errCode": "1",
             "errMessage": "Missing inputs parameter!"
@@ -119,9 +112,9 @@ def handleDeleteUsers():
         data = json.loads(request.data)
         if (data and ('roleId' in currentUser)):
             message = userService.deleteUser(data['id'], currentUser)
-            return jsonify(
-                message
-            ), 202
+            return jsonify({
+                "message": message
+            }), 202
         return jsonify({
             "errCode": "1",
             "errMessage": "Missing inputs parameter!"
