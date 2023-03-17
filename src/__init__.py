@@ -1,10 +1,12 @@
-from flask import Flask, request, Blueprint
-from .config.connectDB import db
-from .models.model import User
 import os
-from .config.config import config
-from .route.web import initRouteWeb
+
+from flask import Flask
 from flask_cors import CORS
+from flask_restful import Api
+
+from .config.config import config
+from .config.connect_db import db
+from .route.web import Login, TodoList, User
 
 
 def create_db(app):
@@ -17,9 +19,12 @@ def create_db(app):
 
 def create_app():
     app = Flask(__name__)
+    api = Api(app)
     app.config.from_mapping(config)
 
     CORS(app, supports_credentials=True)
     create_db(app)
-    app.register_blueprint(initRouteWeb)
+    api.add_resource(TodoList, "/")
+    api.add_resource(Login, "/api/login")
+    api.add_resource(User, "/api/users")
     return app

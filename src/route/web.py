@@ -1,33 +1,27 @@
-from flask import Blueprint
-from ..controllers import userController
-initRouteWeb = Blueprint("initRouteWeb", __name__)
+from flask_restful import Resource
+
+from ..controllers import user_controller
 
 
-@initRouteWeb.route("/", methods=['GET'])
-def handleLogins():
-    return "testhomepage"
+class TodoList(Resource):
+    def get(self):
+        return "testhomepage"
 
 
-@initRouteWeb.route("/api/login", methods=['POST'])
-def handleLogin():
-    return userController.handleLoging()
+class User(Resource):
+    def get(self):
+        return user_controller.handle_get_all_users()
+
+    def post(self):
+        return user_controller.handle_create_new_users()
+
+    def put(self):
+        return user_controller.handle_edit_users()
+
+    def delete(self):
+        return user_controller.handle_delete_users()
 
 
-@initRouteWeb.route("/api/users", methods=['GET'])
-def handleGetUsers():
-    return userController.handleGetAllUsers()
-
-
-@initRouteWeb.route("/api/users", methods=['POST'])
-def handleCreateNewUsers():
-    return userController.handleCreateNewUsers()
-
-
-@initRouteWeb.route("/api/users", methods=['PUT'])
-def handleEditUsers():
-    return userController.handleEditUsers()
-
-
-@initRouteWeb.route("/api/users", methods=['DELETE'])
-def handleDeleteUsers():
-    return userController.handleDeleteUsers()
+class Login(Resource):
+    def post(self):
+        return user_controller.handle_loging()
