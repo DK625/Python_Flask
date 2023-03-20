@@ -6,6 +6,7 @@ from flask import Flask, current_app, jsonify, request
 
 from ..config.connect_db import db
 from ..config.marsh_mallow import user_schema
+from ..controllers.verify_and_authorization import Middleware
 from ..models.model import User
 from ..services import user_service
 
@@ -17,12 +18,12 @@ def handle_loging():
     if data and ("email" in data) and ("password" in data):
         email = data["email"]
         password = data["password"]
-        userData = user_service.handle_user_login(email, password)
-        if userData["err_code"] == 0:
+        user_data = user_service.handle_user_login(email, password)
+        if user_data["err_code"] == 0:
             token = jwt.encode(
                 {
-                    "role_id": userData["role_id"],
-                    "id": userData["id"],
+                    "role_id": user_data["role_id"],
+                    "id": user_data["id"],
                     "exp": datetime.utcnow() + timedelta(minutes=30000),
                 },
                 current_app.config["SECRET_KEY"],
@@ -30,16 +31,16 @@ def handle_loging():
             response = jsonify(
                 {
                     "token": token,
-                    "err_code": userData["err_code"],
-                    "err_message": userData["err_message"],
+                    "err_code": user_data["err_code"],
+                    "err_message": user_data["err_message"],
                 }
             )
             response.status_code = 200
             return response
         response = jsonify(
             {
-                "err_code": userData["err_code"],
-                "message": userData["err_message"],
+                "err_code": user_data["err_code"],
+                "message": user_data["err_message"],
             }
         )
         response.status_code = 200
@@ -52,12 +53,11 @@ def handle_loging():
 def handle_create_new_users():
     data = json.loads(request.data)
     try:
-        token = request.headers["Authorization"].split()[1]
-        currentUser = jwt.decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
-        userData = user_service.create_new_user(data, currentUser["role_id"])
+        current_user = Middleware()
+        user_data = user_service.create_new_user(data, current_user["role_id"])
         return jsonify(
             {
-                "message": userData,
+                "message": user_data,
             }
         )
     except:
@@ -70,11 +70,10 @@ def handle_create_new_users():
 
 def handle_get_all_users():
     try:
-        token = request.headers["Authorization"].split(" ")[1]
-        data = jwt.decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
+        data = Middleware()
         if data and ("id" in data) and ("role_id" in data):
-            userData = user_service.get_all_users(data)
-            return jsonify({"err_code": 0, "err_message": "OK", "users": userData})
+            user_data = user_service.get_all_users(data)
+            return jsonify({"err_code": 0, "err_message": "OK", "users": user_data})
         return jsonify({"err_code": "1", "err_message": "Missing inputs parameter!"})
     except:
         return jsonify({"err_message": "not logged in yet"})
@@ -82,11 +81,10 @@ def handle_get_all_users():
 
 def handle_edit_users():
     try:
-        token = request.headers["Authorization"].split()[1]
-        currentUser = jwt.decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
+        current_user = Middleware()
         data = json.loads(request.data)
         if (data and ("first_name" in data) and ("last_name" in data) and ("address" in data)) and ("id" in data):
-            message = user_service.update_user_data(data, currentUser)
+            message = user_service.update_user_data(data, current_user)
             response = jsonify({"message": message})
             response.status_code = 202
             return response
@@ -97,11 +95,10 @@ def handle_edit_users():
 
 def handle_delete_users():
     try:
-        token = request.headers["Authorization"].split()[1]
-        currentUser = jwt.decode(token, current_app.config["SECRET_KEY"], algorithms=["HS256"])
+        current_user = Middleware()
         data = json.loads(request.data)
-        if data and ("role_id" in currentUser) and "id" in data:
-            message = user_service.delete_user(data["id"], currentUser)
+        if data and ("role_id" in current_user) and "id" in data:
+            message = user_service.delete_user(data["id"], current_user)
             response = jsonify({"message": message})
             response.status_code = 202
             return response

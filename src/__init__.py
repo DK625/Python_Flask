@@ -24,7 +24,8 @@ def create_app():
 
     CORS(app, supports_credentials=True)
     create_db(app)
-    api.add_resource(TodoList, "/")
+    # db.create_all()
     api.add_resource(Login, "/api/login")
     api.add_resource(User, "/api/users")
+    api.add_resource(TodoList, "/")
     return app
